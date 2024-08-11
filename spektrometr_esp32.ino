@@ -59,7 +59,7 @@ void loop() {
 
   // Check if data has changed significantly
   for (int i = 0; i < 6; i++) {
-    uint16_t intensity = as7341.readChannel((as7341_color_channel_t)(i + 1));
+    uint16_t intensity = as7341.readChannel((as7341_adc_channel_t)(AS7341_ADC_CHANNEL_0 + i));
     if (abs(intensity - previousValues[i]) > THRESHOLD) {
       dataChanged = true;
       previousValues[i] = intensity;
