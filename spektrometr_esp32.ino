@@ -20,7 +20,7 @@ TFT_eSPI tft = TFT_eSPI();       // TFT display object
 Adafruit_AS7341 as7341 = Adafruit_AS7341();  // AS7341 sensor object
 
 // Variables for tracking data and state
-uint16_t previousValues[10];  // Array to store previous spectral values
+uint16_t previousValues[6];  // Array to store previous spectral values (6 channels)
 bool saveData = false;        // Flag to trigger data saving
 
 void setup() {
@@ -54,13 +54,12 @@ void loop() {
   // Read data from the AS7341 sensor
   as7341.startReading();
   delay(100);  // Wait for data
-  as7341.endReading();
 
   bool dataChanged = false;
 
   // Check if data has changed significantly
-  for (int i = 0; i < 10; i++) {
-    uint16_t intensity = as7341.getChannel(i);
+  for (int i = 0; i < 6; i++) {
+    uint16_t intensity = as7341.readChannel((as7341_color_channel_t)(i + 1));
     if (abs(intensity - previousValues[i]) > THRESHOLD) {
       dataChanged = true;
       previousValues[i] = intensity;
@@ -103,9 +102,9 @@ void displaySpectrum() {
   tft.println("Spectrum:");
 
   // Display the spectral data as colored bars
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < 6; i++) {
     uint16_t intensity = previousValues[i];
-    uint16_t color = tft.color565(255 - i * 25, i * 25, 255 - i * 25);
+    uint16_t color = tft.color565(255 - i * 40, i * 40, 255 - i * 40);
     tft.fillRect(20 + (i * 20), 240 - intensity / 10, 10, intensity / 10, color);
   }
 }
