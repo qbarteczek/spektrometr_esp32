@@ -1,40 +1,25 @@
-1. Schemat Połączeń
-Komponenty:
-ESP32: mikrokontroler
-AMS AS7341: czujnik spektralny (I2C)
-Wyświetlacz TFT ILI9341: SPI
-Karta SD: SPI (można współdzielić interfejs SPI z TFT)
-Przycisk: do zapisu danych lub zmiany trybu
-Włącznik: do zasilania urządzenia
-Połączenia:
-AMS AS7341 (I2C)
+# spektrometr_esp32 🚀
 
-SDA (Czujnik) -> GPIO21 (ESP32)
-SCL (Czujnik) -> GPIO22 (ESP32)
-VCC -> 3.3V (ESP32)
-GND -> GND (ESP32)
-Wyświetlacz TFT ILI9341 (SPI)
+> **Profesjonalny projekt oparty na mikrokontrolerze ESP32.**
 
-SCK (Wyświetlacz) -> GPIO18 (ESP32)
-MOSI (Wyświetlacz) -> GPIO23 (ESP32)
-MISO (Wyświetlacz) -> GPIO19 (ESP32) (jeśli używane)
-CS (Wyświetlacz) -> GPIO5 (ESP32)
-DC (Wyświetlacz) -> GPIO16 (ESP32)
-RESET (Wyświetlacz) -> GPIO17 (ESP32)
-VCC -> 3.3V (ESP32)
-GND -> GND (ESP32)
-Karta SD (SPI)
+![Status](https://img.shields.io/badge/Status-Aktywny-success?style=flat-square)
+![ESP32](https://img.shields.io/badge/Platform-ESP32-blue?style=flat-square)
 
-SCK (SD) -> GPIO18 (ESP32) (współdzielone z TFT)
-MOSI (SD) -> GPIO23 (ESP32) (współdzielone z TFT)
-MISO (SD) -> GPIO19 (ESP32) (współdzielone z TFT)
-CS (SD) -> GPIO4 (ESP32)
-VCC -> 3.3V (ESP32)
-GND -> GND (ESP32)
-Przycisk
+## 📁 Struktura i Wymagania
 
-Jedna nóżka -> GPIO13 (ESP32)
-Druga nóżka -> GND (ESP32)
-Włącznik
+Kod został sformatowany i ustrukturyzowany tak, aby był w 100% kompatybilny ze standardami środowiska **Arduino IDE**.
 
-Przełącznik zasilania dla całego układu.
+### Wymagania:
+- Płytka z rodziny **ESP32**
+- Zainstalowane pakiety płytki ESP32 w Arduino IDE
+- Podstawowe biblioteki (zależnie od projektu, np. `WiFi`, `PubSubClient` itp.)
+
+## 🚀 Uruchomienie
+
+1. Otwórz główny plik `.ino` w Arduino IDE.
+2. Zaktualizuj ewentualne zmienne konfiguracyjne (jeśli występują w kodzie: SSID, hasła).
+3. Wybierz odpowiednią płytkę i port COM.
+4. Skompiluj i wgraj na urządzenie!
+
+---
+*Repozytorium utrzymywane przez [qbarteczek](https://github.com/qbarteczek)*

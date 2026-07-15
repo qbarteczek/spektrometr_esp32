@@ -5,59 +5,59 @@
 #include <TFT_eSPI.h>
 #include <SD.h>
 
-// Pin definitions
+// Definicje pinów
 #define TFT_CS   5
 #define TFT_DC   16
 #define TFT_RST  17
 #define SD_CS    4
 #define BUTTON_PIN 13
 
-// Threshold for significant data change
+// Próg dla znaczącej zmiany danych
 #define THRESHOLD 50
 
-// TFT display and AS7341 sensor objects
-TFT_eSPI tft = TFT_eSPI();       // TFT display object
-Adafruit_AS7341 as7341 = Adafruit_AS7341();  // AS7341 sensor object
+// Obiekty wyświetlacza TFT i czujnika AS7341
+TFT_eSPI tft = TFT_eSPI();       // Wyświetlacz TFT
+Adafruit_AS7341 as7341 = Adafruit_AS7341();  // Czujnik AS7341
 
-// Variables for tracking data and state
-uint16_t previousValues[6];  // Array to store previous spectral values (6 channels)
-bool saveData = false;        // Flag to trigger data saving
+// Zmienne do śledzenia danych i stanu
+uint16_t previousValues[6];  // Tablica przechowująca poprzednie wartości widma (6 kanałów)
+bool saveData = false;       // Flaga wyzwalająca zapis danych
 
 void setup() {
   Serial.begin(115200);
 
-  // Initialize TFT display
+  // Inicjalizacja wyświetlacza TFT
   tft.init();
   tft.setRotation(1);
   tft.fillScreen(TFT_BLACK);
 
-  // Initialize AS7341 sensor
+  // Inicjalizacja czujnika AS7341
   if (!as7341.begin()) {
-    Serial.println("Cannot find AS7341 sensor!");
+    Serial.println("Nie mozna znalezc czujnika AS7341!");
     while (1);
   }
 
-  // Initialize SD card
+  // Inicjalizacja karty SD
   if (!SD.begin(SD_CS)) {
-    Serial.println("SD card not detected!");
+    Serial.println("Nie wykryto karty SD!");
     while (1);
   }
 
-  // Set button pin as input with internal pull-up resistor
+  // Ustawienie pinu przycisku jako wejście z wewnętrznym rezystorem podciągającym (pull-up)
   pinMode(BUTTON_PIN, INPUT_PULLUP);
 
-  // Clear previous values array
+  // Czyszczenie tablicy poprzednich wartości
   memset(previousValues, 0, sizeof(previousValues));
 }
 
 void loop() {
-  // Read data from the AS7341 sensor
+  // Odczyt danych z czujnika AS7341
   as7341.startReading();
-  delay(100);  // Wait for data
+  delay(100);  // Oczekiwanie na dane
 
   bool dataChanged = false;
 
-  // Check if data has changed significantly
+  // Sprawdzenie, czy dane uległy znacznej zmianie
   for (int i = 0; i < 6; i++) {
     uint16_t intensity = as7341.readChannel((as7341_adc_channel_t)(AS7341_ADC_CHANNEL_0 + i));
     if (abs(intensity - previousValues[i]) > THRESHOLD) {
@@ -66,42 +66,42 @@ void loop() {
     }
   }
 
-  // Update TFT display only if data has changed
+  // Aktualizacja wyświetlacza TFT tylko w przypadku zmiany danych
   if (dataChanged) {
     displaySpectrum();
   }
 
-  // Check button press to save data
+  // Sprawdzenie naciśnięcia przycisku w celu zapisu danych
   if (digitalRead(BUTTON_PIN) == LOW) {
     saveData = true;
-    delay(300);  // Debounce delay
+    delay(300);  // Opóźnienie zapobiegające drganiom styków (debounce)
   }
 
-  // Save screenshot if requested
+  // Zapisanie zrzutu ekranu, jeśli zażądano
   if (saveData) {
     saveScreenshot();
     saveData = false;
   }
 
-  // Enter light sleep mode after 10 seconds of inactivity
+  // Przejście w tryb uśpienia (light sleep) po 10 sekundach bezczynności
   static unsigned long lastActivityTime = millis();
   if (dataChanged) {
     lastActivityTime = millis();
-  } else if (millis() - lastActivityTime > 10000) {  // 10 seconds of inactivity
-    esp_light_sleep_start();  // Enter light sleep mode
-    lastActivityTime = millis();  // Update activity time after waking up
+  } else if (millis() - lastActivityTime > 10000) {  // 10 sekund bezczynności
+    esp_light_sleep_start();  // Przejście w tryb uśpienia
+    lastActivityTime = millis();  // Aktualizacja czasu aktywności po wybudzeniu
   }
 
-  delay(500);  // Delay before the next loop
+  delay(500);  // Opóźnienie przed kolejną pętlą
 }
 
 void displaySpectrum() {
   tft.fillScreen(TFT_BLACK);
   tft.setTextColor(TFT_WHITE);
   tft.setCursor(0, 0);
-  tft.println("Spectrum:");
+  tft.println("Widmo:");
 
-  // Display the spectral data as colored bars
+  // Wyświetlanie danych spektralnych w postaci kolorowych pasków
   for (int i = 0; i < 6; i++) {
     uint16_t intensity = previousValues[i];
     uint16_t color = tft.color565(255 - i * 40, i * 40, 255 - i * 40);
@@ -111,21 +111,21 @@ void displaySpectrum() {
 
 void saveScreenshot() {
   const uint16_t w = tft.width(), h = tft.height();
-  uint16_t buffer[w];  // Static array to hold pixel data
+  uint16_t buffer[w];  // Statyczna tablica do przechowywania danych pikseli
 
-  // Open file for writing
+  // Otwarcie pliku do zapisu
   File file = SD.open("/screenshot.bmp", FILE_WRITE);
   if (!file) {
-    Serial.println("Cannot open file for writing!");
+    Serial.println("Nie mozna otworzyc pliku do zapisu!");
     return;
   }
 
-  // Save each line of the screen to the file
+  // Zapis każdej linii ekranu do pliku
   for (uint16_t y = 0; y < h; y++) {
     tft.readRect(0, y, w, 1, buffer);
     file.write((uint8_t*)buffer, sizeof(buffer));
   }
 
   file.close();
-  Serial.println("Screenshot saved.");
+  Serial.println("Zrzut ekranu zapisany.");
 }
