@@ -88,8 +88,10 @@ void loop() {
   if (dataChanged) {
     lastActivityTime = millis();
   } else if (millis() - lastActivityTime > 10000) {  // 10 sekund bezczynności
+    // Konfiguracja wybudzania przyciskiem (LOW na BUTTON_PIN)
+    esp_sleep_enable_ext0_wakeup((gpio_num_t)BUTTON_PIN, 0);
     esp_light_sleep_start();  // Przejście w tryb uśpienia
-    lastActivityTime = millis();  // Aktualizacja czasu aktywności po wybudzeniu
+    lastActivityTime = millis();  // Aktualizacja czasu po wybudzeniu
   }
 
   delay(500);  // Opóźnienie przed kolejną pętlą
@@ -111,21 +113,68 @@ void displaySpectrum() {
 
 void saveScreenshot() {
   const uint16_t w = tft.width(), h = tft.height();
-  uint16_t buffer[w];  // Statyczna tablica do przechowywania danych pikseli
-
-  // Otwarcie pliku do zapisu
-  File file = SD.open("/screenshot.bmp", FILE_WRITE);
-  if (!file) {
-    Serial.println("Nie mozna otworzyc pliku do zapisu!");
+  uint16_t* buffer = (uint16_t*) malloc(w * sizeof(uint16_t));
+  if (!buffer) {
+    Serial.println("Brak RAM na zrzut ekranu!");
     return;
   }
 
-  // Zapis każdej linii ekranu do pliku
-  for (uint16_t y = 0; y < h; y++) {
+  File file = SD.open("/screenshot.bmp", FILE_WRITE);
+  if (!file) {
+    Serial.println("Nie mozna otworzyc pliku do zapisu!");
+    free(buffer);
+    return;
+  }
+
+  // 1. Zapis nagłówka BMP (24-bitowy, formatowanie DIB)
+  uint32_t rowSize = (w * 3 + 3) & ~3; // Wyrównanie do 4 bajtów
+  uint32_t fileSize = 54 + rowSize * h;
+
+  unsigned char bmpFileHeader[14] = {
+    'B','M', 0,0,0,0, 0,0, 0,0, 54,0,0,0
+  };
+  bmpFileHeader[2] = (unsigned char)(fileSize);
+  bmpFileHeader[3] = (unsigned char)(fileSize >> 8);
+  bmpFileHeader[4] = (unsigned char)(fileSize >> 16);
+  bmpFileHeader[5] = (unsigned char)(fileSize >> 24);
+
+  unsigned char bmpInfoHeader[40] = {
+    40,0,0,0, 0,0,0,0, 0,0,0,0, 1,0, 24,0,
+    0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
+    0,0,0,0, 0,0,0,0
+  };
+  bmpInfoHeader[4] = (unsigned char)(w);
+  bmpInfoHeader[5] = (unsigned char)(w >> 8);
+  bmpInfoHeader[6] = (unsigned char)(w >> 16);
+  bmpInfoHeader[7] = (unsigned char)(w >> 24);
+  bmpInfoHeader[8] = (unsigned char)(h);
+  bmpInfoHeader[9] = (unsigned char)(h >> 8);
+  bmpInfoHeader[10] = (unsigned char)(h >> 16);
+  bmpInfoHeader[11] = (unsigned char)(h >> 24);
+
+  file.write(bmpFileHeader, 14);
+  file.write(bmpInfoHeader, 40);
+
+  // 2. Odczyt pikseli (od dołu do góry ze względu na naturę plików BMP)
+  uint8_t* rowBuffer = (uint8_t*) malloc(rowSize);
+  for (int y = h - 1; y >= 0; y--) {
     tft.readRect(0, y, w, 1, buffer);
-    file.write((uint8_t*)buffer, sizeof(buffer));
+    int ptr = 0;
+    for (int x = 0; x < w; x++) {
+      uint16_t color = buffer[x];
+      // Dekodowanie z RGB565 na BGR888 (wymóg BMP)
+      uint8_t r = (color & 0xF800) >> 8;
+      uint8_t g = (color & 0x07E0) >> 3;
+      uint8_t b = (color & 0x001F) << 3;
+      rowBuffer[ptr++] = b;
+      rowBuffer[ptr++] = g;
+      rowBuffer[ptr++] = r;
+    }
+    file.write(rowBuffer, rowSize);
   }
 
   file.close();
-  Serial.println("Zrzut ekranu zapisany.");
+  free(buffer);
+  free(rowBuffer);
+  Serial.println("Zrzut ekranu zapisany jako prawidlowy plik BMP.");
 }
