@@ -1,0 +1,13 @@
+# PlatformIO ignore files
+.pio/
+.vscode/
+
+# Arduino IDE ignore files
+build/
+*~
+*.swp
+*.bak
+
+# OS specific files
+.DS_Store
+Thumbs.db
